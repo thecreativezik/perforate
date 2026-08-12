@@ -21,19 +21,35 @@ const DEFAULT_VALUES: DialValues = {
   brief: { description: "A young creative balancing everyday expenses with style.", headline: "Budget Acrobat", caption: "You’re balancing rent, transport, and family support with style.", grade: "C" },
   scene: { hero: "a stylish young Ghanaian creative", supportingCast: "personified rent, transport, groceries and data bundle", setting: "Accra city", mood: "hopeful hustle", composition: "balanced tableau" },
   artDirection: { illustrationStyle: "mid-century editorial cartoon", palette: "grade-coded", primaryInk: "#28754b", accentInk: "#d7b22c", detail: 68, characterEnergy: 58 },
-  stamp: { orientation: "portrait 3:4", imageArea: 72, perforation: 18, borderWidth: 28, cornerRadius: 16, copyLayout: "headline below image" },
-  type: { personality: "bold grotesk", headlineScale: 82, gradeStyle: "wax seal badge", showLabel: true, showIcons: true },
-  print: { paperAge: 22, grain: 46, distress: 30, inkSpread: 18, contrast: 76, saturation: 72 },
+  backing: { show: true, color: "#28754b", opacity: 100, padding: 12, offsetX: 0, offsetY: 0, rotation: 0, cornerRadius: 0, shadow: 24 },
+  paper: { show: true, orientation: "portrait 3:4", color: "#f7f0df", opacity: 100, padding: 18, perforation: 12, perforationSpacing: 22, cornerRadius: 0 },
+  artwork: { show: true, backgroundColor: "#d8e9cf", imageArea: 72, inset: 0, cornerRadius: 16, fit: "cover", zoom: 136, cropX: 50, cropY: 22, rotation: 0, opacity: 100, tintColor: "#28754b", tintOpacity: 0 },
+  footer: { show: true, backgroundColor: "#f7f0df", padding: 10, gap: 8, layout: "A: copy left, grade right", showDivider: true, dividerColor: "#28754b" },
+  type: { personality: "bold grotesk", showHeadline: true, headlineColor: "#171914", headlineScale: 88, headlineWeight: 850, headlineAlign: "left", showCaption: true, captionColor: "#4e584a", captionScale: 100, showGrade: true, gradeStyle: "oversized letter", gradeColor: "#28754b", gradeScale: 110, showLabel: true, labelText: "FINANCIAL HEALTH", labelColor: "#28754b", showIcons: true, iconColor: "#28754b" },
+  print: { paperAge: 22, grain: 46, distress: 30, inkSpread: 18, contrast: 76, saturation: 72, brightness: 100 },
 };
 
 function recipeForSticker(item: StickerItem): DialValues {
-  if (item.recipe) return item.recipe;
+  if (item.recipe) return {
+    ...DEFAULT_VALUES,
+    ...item.recipe,
+    backing: { ...DEFAULT_VALUES.backing, ...item.recipe.backing },
+    paper: { ...DEFAULT_VALUES.paper, ...item.recipe.paper },
+    artwork: { ...DEFAULT_VALUES.artwork, ...item.recipe.artwork },
+    footer: { ...DEFAULT_VALUES.footer, ...item.recipe.footer },
+    type: { ...DEFAULT_VALUES.type, ...item.recipe.type },
+    print: { ...DEFAULT_VALUES.print, ...item.recipe.print },
+  };
   const preset = gradePresets[item.grade];
   return {
     ...DEFAULT_VALUES,
     brief: { ...DEFAULT_VALUES.brief, headline: item.title, grade: item.grade },
     scene: { ...DEFAULT_VALUES.scene, mood: preset.mood },
     artDirection: { ...DEFAULT_VALUES.artDirection, palette: preset.palette, primaryInk: preset.primary, accentInk: preset.accent },
+    backing: { ...DEFAULT_VALUES.backing, color: preset.primary },
+    artwork: { ...DEFAULT_VALUES.artwork, tintColor: preset.primary },
+    footer: { ...DEFAULT_VALUES.footer, dividerColor: preset.primary },
+    type: { ...DEFAULT_VALUES.type, gradeColor: preset.primary, labelColor: preset.primary, iconColor: preset.primary },
   };
 }
 
@@ -48,6 +64,7 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
   const [values, setValues] = useState<DialValues>(DEFAULT_VALUES);
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadIntentRef = useRef<"add" | "replace">("add");
   const imageIdsRef = useRef<string[]>([]);
   const initializedRef = useRef(false);
 
@@ -102,7 +119,7 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
       title: nextValues.brief.headline || item.title,
       grade: nextValues.brief.grade,
       accent: nextValues.artDirection.primaryInk,
-      recipe: nextValues,
+      recipe: JSON.parse(JSON.stringify(nextValues)) as DialValues,
     } : item));
   }, [selectedId]);
 
@@ -123,22 +140,29 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
     });
   }, []);
 
-  const importFromChatGPT = useCallback(async () => {
+  const replaceSelectedImage = useCallback((imageUrl: string) => {
+    if (!selectedId) return;
+    setItems((current) => current.map((item) => item.id === selectedId ? { ...item, imageUrl } : item));
+  }, [selectedId]);
+
+  const importFromChatGPT = useCallback(async (intent: "add" | "replace" = "add") => {
+    uploadIntentRef.current = intent;
     if (!window.openai?.selectFiles || !window.openai?.getFileDownloadUrl) {
       fileInputRef.current?.click();
       return;
     }
     const files = await window.openai.selectFiles();
     let imported = 0;
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
       if (file.mimeType && !file.mimeType.startsWith("image/")) continue;
       const { downloadUrl } = await window.openai.getFileDownloadUrl({ fileId: file.fileId });
       imageIdsRef.current = Array.from(new Set([...imageIdsRef.current, file.fileId]));
-      addFromFile(downloadUrl, file.fileName ?? "ChatGPT sticker", values.brief.grade);
+      if (intent === "replace" && index === 0) replaceSelectedImage(downloadUrl);
+      else addFromFile(downloadUrl, file.fileName ?? "ChatGPT sticker", values.brief.grade);
       imported += 1;
     }
-    flash(imported ? `${imported} sticker${imported === 1 ? "" : "s"} added to canvas` : "Choose an image from your Library");
-  }, [addFromFile, flash, values.brief.grade]);
+    flash(imported ? intent === "replace" ? "Selected artwork replaced" : `${imported} sticker${imported === 1 ? "" : "s"} added to canvas` : "Choose an image from your Library");
+  }, [addFromFile, flash, replaceSelectedImage, values.brief.grade]);
 
   const selected = items.find((item) => item.id === selectedId);
   const selectedRecipe = selected ? recipeForSticker(selected) : values;
@@ -167,7 +191,7 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
         <div className="edition-note"><span>GHANA MONEY MOODS</span><strong>COLLECTION 01</strong></div>
         <div className="top-actions">
           {selected && <div className="selection-actions"><span>{selected.title}</span><button onClick={duplicateSelected} aria-label="Duplicate selected sticker"><Copy size={16} /></button><button onClick={downloadSelected} aria-label="Download selected sticker"><DownloadSimple size={16} /></button><button onClick={() => { setItems((current) => current.filter((item) => item.id !== selected.id)); setSelectedId(null); }} aria-label="Delete selected sticker"><Trash size={16} /></button></div>}
-          <button className="library-button" onClick={importFromChatGPT}><Images size={17} weight="bold" />{mode === "chatgpt" ? "Add from Library" : "Add artwork"}</button>
+          <button className="library-button" onClick={() => void importFromChatGPT("add")}><Images size={17} weight="bold" />{mode === "chatgpt" ? "Add from Library" : "Add artwork"}</button>
         </div>
       </header>
 
@@ -176,11 +200,16 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
           <InfiniteBoard items={items} selectedId={selectedId} liveValues={values} onSelect={setSelectedId} onMove={(id, x, y) => setItems((current) => current.map((item) => item.id === id ? { ...item, x, y } : item))} />
           <div className="canvas-label"><span>INFINITE CANVAS</span><strong>{items.length.toString().padStart(2, "0")} EDITIONS</strong></div>
         </div>
-        <DialPanel key={selectedId ?? "none"} onValues={applyLiveValues} onGenerate={generate} selectedTitle={selected?.title} selectedId={selectedId ?? "none"} initialValues={selectedRecipe} />
+        <DialPanel key={selectedId ?? "none"} onValues={applyLiveValues} onGenerate={generate} onReplaceArtwork={() => void importFromChatGPT("replace")} selectedTitle={selected?.title} selectedId={selectedId ?? "none"} initialValues={selectedRecipe} />
       </section>
 
       <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={(event) => {
-        Array.from(event.target.files ?? []).forEach((file) => addFromFile(URL.createObjectURL(file), file.name, values.brief.grade));
+        Array.from(event.target.files ?? []).forEach((file, index) => {
+          if (uploadIntentRef.current === "replace" && index === 0) replaceSelectedImage(URL.createObjectURL(file));
+          else addFromFile(URL.createObjectURL(file), file.name, values.brief.grade);
+        });
+        if (uploadIntentRef.current === "replace" && event.currentTarget.files?.length) flash("Selected artwork replaced");
+        uploadIntentRef.current = "add";
         event.currentTarget.value = "";
       }} />
 

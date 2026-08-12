@@ -20,9 +20,12 @@ export type DialValues = {
   brief: { description: string; headline: string; caption: string; grade: Grade };
   scene: { hero: string; supportingCast: string; setting: string; mood: string; composition: string };
   artDirection: { illustrationStyle: string; palette: string; primaryInk: string; accentInk: string; detail: number; characterEnergy: number };
-  stamp: { orientation: string; imageArea: number; perforation: number; borderWidth: number; cornerRadius: number; copyLayout: string };
-  type: { personality: string; headlineScale: number; gradeStyle: string; showLabel: boolean; showIcons: boolean };
-  print: { paperAge: number; grain: number; distress: number; inkSpread: number; contrast: number; saturation: number };
+  backing: { show: boolean; color: string; opacity: number; padding: number; offsetX: number; offsetY: number; rotation: number; cornerRadius: number; shadow: number };
+  paper: { show: boolean; orientation: string; color: string; opacity: number; padding: number; perforation: number; perforationSpacing: number; cornerRadius: number };
+  artwork: { show: boolean; backgroundColor: string; imageArea: number; inset: number; cornerRadius: number; fit: string; zoom: number; cropX: number; cropY: number; rotation: number; opacity: number; tintColor: string; tintOpacity: number };
+  footer: { show: boolean; backgroundColor: string; padding: number; gap: number; layout: string; showDivider: boolean; dividerColor: string };
+  type: { personality: string; showHeadline: boolean; headlineColor: string; headlineScale: number; headlineWeight: number; headlineAlign: string; showCaption: boolean; captionColor: string; captionScale: number; showGrade: boolean; gradeStyle: string; gradeColor: string; gradeScale: number; showLabel: boolean; labelText: string; labelColor: string; showIcons: boolean; iconColor: string };
+  print: { paperAge: number; grain: number; distress: number; inkSpread: number; contrast: number; saturation: number; brightness: number };
 };
 
 export type OpenAIWidgetState = {

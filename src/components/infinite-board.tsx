@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue } from "motion/react";
-import { ArrowsOutSimple, Hand, MagnifyingGlassMinus, MagnifyingGlassPlus } from "@phosphor-icons/react";
+import { ArrowsOutSimple, Bus, Hand, Heart, House, MagnifyingGlassMinus, MagnifyingGlassPlus, PiggyBank, Wallet } from "@phosphor-icons/react";
 import type { DialValues, StickerItem } from "@/lib/types";
 
 type Camera = { x: number; y: number; zoom: number };
@@ -136,43 +136,86 @@ function LiveSticker({ item, values }: { item: StickerItem; values?: DialValues 
     return <img src={item.imageUrl} alt={`${item.title}, grade ${item.grade} sticker`} draggable={false} />;
   }
 
-  const orientationClass = values.stamp.orientation.startsWith("square") ? "is-square" : values.stamp.orientation.includes("4:5") ? "is-four-five" : "is-three-four";
+  const orientationClass = values.paper.orientation.startsWith("square") ? "is-square" : values.paper.orientation.includes("4:5") ? "is-four-five" : "is-three-four";
   const fontClass = `type-${values.type.personality.replace(/[^a-z]+/g, "-")}`;
-  const filter = `saturate(${0.35 + values.print.saturation / 72}) contrast(${0.65 + values.print.contrast / 100}) brightness(${1 - values.print.paperAge / 850})`;
+  const layoutClass = `layout-${values.footer.layout.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+  const filter = `saturate(${Math.max(.05, values.print.saturation / 72)}) contrast(${Math.max(.4, values.print.contrast / 76)}) brightness(${Math.max(.35, values.print.brightness / 100 - values.print.paperAge / 850)})`;
   const style = {
     "--live-primary": values.artDirection.primaryInk,
     "--live-accent": values.artDirection.accentInk,
-    "--live-border": `${values.stamp.borderWidth * 0.38}px`,
-    "--live-radius": `${values.stamp.cornerRadius}px`,
-    "--live-perf": `${Math.max(6, values.stamp.perforation)}px`,
-    "--live-image-area": `${values.stamp.imageArea}%`,
+    "--backing-color": values.backing.color,
+    "--backing-opacity": values.backing.opacity / 100,
+    "--backing-padding": `${values.backing.padding}px`,
+    "--backing-x": `${values.backing.offsetX}px`,
+    "--backing-y": `${values.backing.offsetY}px`,
+    "--backing-rotation": `${values.backing.rotation}deg`,
+    "--backing-radius": `${values.backing.cornerRadius}px`,
+    "--backing-shadow": `${values.backing.shadow}px`,
+    "--paper-color": values.paper.color,
+    "--paper-opacity": values.paper.opacity / 100,
+    "--paper-padding": `${values.paper.padding}px`,
+    "--paper-perf": `${values.paper.perforation}px`,
+    "--paper-perf-space": `${values.paper.perforationSpacing}px`,
+    "--paper-radius": `${values.paper.cornerRadius}px`,
+    "--art-background": values.artwork.backgroundColor,
+    "--art-area": `${values.artwork.imageArea}%`,
+    "--art-inset": `${values.artwork.inset}px`,
+    "--art-radius": `${values.artwork.cornerRadius}px`,
+    "--art-zoom": values.artwork.zoom / 100,
+    "--art-x": `${values.artwork.cropX}%`,
+    "--art-y": `${values.artwork.cropY}%`,
+    "--art-rotation": `${values.artwork.rotation}deg`,
+    "--art-opacity": values.artwork.opacity / 100,
+    "--art-tint": values.artwork.tintColor,
+    "--art-tint-opacity": values.artwork.tintOpacity / 100,
+    "--footer-color": values.footer.backgroundColor,
+    "--footer-padding": `${values.footer.padding}px`,
+    "--footer-gap": `${values.footer.gap}px`,
     "--live-headline-scale": `${values.type.headlineScale / 100}`,
+    "--headline-color": values.type.headlineColor,
+    "--headline-weight": values.type.headlineWeight,
+    "--headline-align": values.type.headlineAlign,
+    "--caption-color": values.type.captionColor,
+    "--caption-scale": values.type.captionScale / 100,
+    "--grade-color": values.type.gradeColor,
+    "--grade-scale": values.type.gradeScale / 100,
+    "--label-color": values.type.labelColor,
+    "--icon-color": values.type.iconColor,
+    "--divider-color": values.footer.dividerColor,
     "--live-grain": values.print.grain / 100,
     "--live-distress": values.print.distress / 100,
     "--live-spread": `${values.print.inkSpread / 30}px`,
-    "--live-energy": `${(values.artDirection.characterEnergy - 50) / 18}deg`,
   } as React.CSSProperties;
 
   return (
-    <div className={`live-stamp ${orientationClass} ${fontClass} layout-${values.stamp.copyLayout.replace(/[^a-z]+/g, "-")}`} style={style}>
-      <div className="live-stamp-paper">
-        <div className="live-art" style={{ height: `var(--live-image-area)`, borderRadius: `var(--live-radius)`, filter }}>
-          {/* The source may be a temporary ChatGPT Library download URL. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.imageUrl} alt="" draggable={false} />
-          <span className="live-color-wash" />
-        </div>
-        <div className="live-copy">
-          <div className={`live-grade grade-${values.type.gradeStyle.replace(/[^a-z]+/g, "-")}`}>
-            {values.type.showLabel && <small>GRADE</small>}<strong>{values.brief.grade}</strong>
+    <div className={`live-stamp ${orientationClass} ${fontClass} ${layoutClass} ${values.backing.show ? "" : "no-backing"} ${values.paper.show ? "" : "no-paper"} ${values.footer.show ? "" : "no-footer"}`} style={style}>
+      <div className="live-backing">
+        <div className="live-stamp-paper">
+          {values.artwork.show && <div className="live-art" style={{ filter }}>
+            {/* The source may be a temporary ChatGPT Library download URL. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={item.imageUrl} alt="" draggable={false} style={{ objectFit: values.artwork.fit as React.CSSProperties["objectFit"] }} />
+            <span className="live-color-wash" />
+          </div>}
+          {values.footer.show && <div className="live-footer">
+            <div className="live-copy">
+              <div className="live-words">
+                {values.type.showHeadline && <strong className="live-headline">{values.brief.headline || item.title}</strong>}
+                {values.type.showCaption && <span className="live-caption">{values.brief.caption}</span>}
+              </div>
+              {values.type.showLabel && <div className="live-health-row">
+                <span className="live-health-label">{values.type.labelText}</span>
+                {values.type.showIcons && <span className="live-icons" aria-hidden="true"><Wallet /><House /><Bus /><Heart /><PiggyBank /></span>}
+              </div>}
+            </div>
+            {values.type.showGrade && <div className={`live-grade grade-${values.type.gradeStyle.replace(/[^a-z]+/g, "-")}`}>
+              {values.type.showLabel && <small>GRADE</small>}<strong>{values.brief.grade}</strong>
+            </div>}
+            {values.footer.showDivider && <span className="live-divider" />}
           </div>
-          <div className="live-words">
-            <strong className="live-headline">{values.brief.headline || item.title}</strong>
-            <span>{values.brief.caption}</span>
-          </div>
-          {values.type.showIcons && <div className="live-icons" aria-hidden="true"><i>●</i><i>⌂</i><i>▣</i><i>♥</i></div>}
+          }
+          <span className="live-grain" />
         </div>
-        <span className="live-grain" />
       </div>
     </div>
   );
