@@ -25,10 +25,10 @@ export function createSeedStickers(assetBaseUrl = ""): StickerItem[] {
 }
 
 export const gradePresets = {
-  A: { palette: "Garden green & antique gold", mood: "calm, capable, quietly triumphant", primary: "#176a43", accent: "#d7b22c" },
-  B: { palette: "Cobalt blue & paper white", mood: "optimistic, active, holding it together", primary: "#245cb8", accent: "#f3c450" },
-  C: { palette: "Leaf green & mustard", mood: "balanced, resourceful, playful", primary: "#28754b", accent: "#d7b22c" },
-  D: { palette: "Burnt orange & warm cream", mood: "strained, comic, still moving", primary: "#d86a17", accent: "#f2c66d" },
-  E: { palette: "Coral red & bruised brown", mood: "overwhelmed, scrappy, theatrical", primary: "#de4c37", accent: "#f5b575" },
-  F: { palette: "Oxblood, ash & fire orange", mood: "chaotic, apocalyptic, darkly funny", primary: "#c93724", accent: "#f1742a" },
+  A: { palette: "garden green & gold", mood: "calm confidence", primary: "#176a43", accent: "#d7b22c" },
+  B: { palette: "cobalt & cream", mood: "hopeful hustle", primary: "#245cb8", accent: "#f3c450" },
+  C: { palette: "garden green & gold", mood: "hopeful hustle", primary: "#28754b", accent: "#d7b22c" },
+  D: { palette: "burnt orange & ochre", mood: "comic pressure", primary: "#d86a17", accent: "#f2c66d" },
+  E: { palette: "coral & oxblood", mood: "comic pressure", primary: "#de4c37", accent: "#f5b575" },
+  F: { palette: "coral & oxblood", mood: "full chaos", primary: "#c93724", accent: "#f1742a" },
 } as const;

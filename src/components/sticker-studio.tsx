@@ -3,14 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowSquareOut,
   Check,
   Copy,
   DownloadSimple,
   Images,
-  Plus,
   Trash,
-  X,
 } from "@phosphor-icons/react";
 import { DialPanel } from "./dial-panel";
 import { InfiniteBoard } from "./infinite-board";
@@ -29,6 +26,17 @@ const DEFAULT_VALUES: DialValues = {
   print: { paperAge: 22, grain: 46, distress: 30, inkSpread: 18, contrast: 76, saturation: 72 },
 };
 
+function recipeForSticker(item: StickerItem): DialValues {
+  if (item.recipe) return item.recipe;
+  const preset = gradePresets[item.grade];
+  return {
+    ...DEFAULT_VALUES,
+    brief: { ...DEFAULT_VALUES.brief, headline: item.title, grade: item.grade },
+    scene: { ...DEFAULT_VALUES.scene, mood: preset.mood },
+    artDirection: { ...DEFAULT_VALUES.artDirection, palette: preset.palette, primaryInk: preset.primary, accentInk: preset.accent },
+  };
+}
+
 export function StickerStudio({ mode }: { mode: StudioMode }) {
   const assetBaseUrl = useMemo(() => {
     if (typeof window !== "undefined" && window.__PERFORATE_BASE_URL__) return window.__PERFORATE_BASE_URL__;
@@ -39,7 +47,6 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
   const [selectedId, setSelectedId] = useState<string | null>(seedItems[2]?.id ?? null);
   const [values, setValues] = useState<DialValues>(DEFAULT_VALUES);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showStandaloneGuide, setShowStandaloneGuide] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageIdsRef = useRef<string[]>([]);
   const initializedRef = useRef(false);
@@ -77,21 +84,27 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
     window.setTimeout(() => setNotice(null), 2600);
   }, []);
 
-  const copyPrompt = useCallback(async (current: DialValues) => {
-    await navigator.clipboard.writeText(buildStickerPrompt(current));
-    flash("Art brief copied");
-  }, [flash]);
-
   const generate = useCallback(async (current: DialValues) => {
     const prompt = buildStickerPrompt(current);
     if (window.openai?.sendFollowUpMessage) {
       await window.openai.sendFollowUpMessage({ prompt, scrollToBottom: true });
-      flash("Brief sent — ChatGPT is creating your sticker");
+      flash("ChatGPT is refining the artwork — keep designing here");
       return;
     }
-    await navigator.clipboard.writeText(prompt);
-    setShowStandaloneGuide(true);
+    flash("Live edits are active. Open this studio inside ChatGPT to regenerate artwork.");
   }, [flash]);
+
+  const applyLiveValues = useCallback((nextValues: DialValues) => {
+    setValues(nextValues);
+    if (!selectedId) return;
+    setItems((current) => current.map((item) => item.id === selectedId ? {
+      ...item,
+      title: nextValues.brief.headline || item.title,
+      grade: nextValues.brief.grade,
+      accent: nextValues.artDirection.primaryInk,
+      recipe: nextValues,
+    } : item));
+  }, [selectedId]);
 
   const addFromFile = useCallback((imageUrl: string, title: string, grade: Grade) => {
     setItems((current) => {
@@ -128,6 +141,7 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
   }, [addFromFile, flash, values.brief.grade]);
 
   const selected = items.find((item) => item.id === selectedId);
+  const selectedRecipe = selected ? recipeForSticker(selected) : values;
 
   const duplicateSelected = useCallback(() => {
     if (!selected) return;
@@ -159,10 +173,10 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
 
       <section className="studio-workspace">
         <div className="canvas-column">
-          <InfiniteBoard items={items} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => setItems((current) => current.map((item) => item.id === id ? { ...item, x, y } : item))} />
+          <InfiniteBoard items={items} selectedId={selectedId} liveValues={values} onSelect={setSelectedId} onMove={(id, x, y) => setItems((current) => current.map((item) => item.id === id ? { ...item, x, y } : item))} />
           <div className="canvas-label"><span>INFINITE CANVAS</span><strong>{items.length.toString().padStart(2, "0")} EDITIONS</strong></div>
         </div>
-        <DialPanel onValues={setValues} onGenerate={generate} onCopyPrompt={copyPrompt} />
+        <DialPanel key={selectedId ?? "none"} onValues={applyLiveValues} onGenerate={generate} selectedTitle={selected?.title} selectedId={selectedId ?? "none"} initialValues={selectedRecipe} />
       </section>
 
       <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={(event) => {
@@ -172,18 +186,6 @@ export function StickerStudio({ mode }: { mode: StudioMode }) {
 
       <AnimatePresence>{notice && <motion.div className="toast" initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }}><Check size={16} weight="bold" />{notice}</motion.div>}</AnimatePresence>
 
-      <AnimatePresence>{showStandaloneGuide && (
-        <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={() => setShowStandaloneGuide(false)}>
-          <motion.div className="standalone-modal" initial={{ y: 18, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 18, scale: 0.98 }} onMouseDown={(event) => event.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowStandaloneGuide(false)} aria-label="Close"><X size={18} /></button>
-            <span className="modal-stamp"><Plus size={24} weight="bold" /></span>
-            <p className="eyebrow">YOUR BRIEF IS READY</p>
-            <h2>Finish the edition in ChatGPT</h2>
-            <p>The art brief is on your clipboard. Open ChatGPT, paste it, and generate with the image access included in your plan. Install this app in ChatGPT for the one-click flow.</p>
-            <a className="generate-button" href="https://chatgpt.com" target="_blank" rel="noreferrer"><ArrowSquareOut size={19} weight="bold" /><span>Open ChatGPT<small>Paste and generate</small></span></a>
-          </motion.div>
-        </motion.div>
-      )}</AnimatePresence>
     </main>
   );
 }

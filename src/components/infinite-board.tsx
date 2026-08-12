@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue } from "motion/react";
 import { ArrowsOutSimple, Hand, MagnifyingGlassMinus, MagnifyingGlassPlus } from "@phosphor-icons/react";
-import type { StickerItem } from "@/lib/types";
+import type { DialValues, StickerItem } from "@/lib/types";
 
 type Camera = { x: number; y: number; zoom: number };
 
@@ -14,11 +14,13 @@ export function InfiniteBoard({
   selectedId,
   onSelect,
   onMove,
+  liveValues,
 }: {
   items: StickerItem[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, x: number, y: number) => void;
+  liveValues: DialValues;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.68 });
@@ -86,7 +88,7 @@ export function InfiniteBoard({
     >
       <div className="board-origin" style={worldStyle}>
         {items.map((item) => (
-          <StickerObject key={item.id} item={item} selected={selectedId === item.id} zoom={camera.zoom} onSelect={onSelect} onMove={onMove} />
+          <StickerObject key={item.id} item={item} selected={selectedId === item.id} liveValues={selectedId === item.id ? liveValues : item.recipe} zoom={camera.zoom} onSelect={onSelect} onMove={onMove} />
         ))}
       </div>
 
@@ -101,7 +103,7 @@ export function InfiniteBoard({
   );
 }
 
-function StickerObject({ item, selected, zoom, onSelect, onMove }: { item: StickerItem; selected: boolean; zoom: number; onSelect: (id: string) => void; onMove: (id: string, x: number, y: number) => void }) {
+function StickerObject({ item, selected, liveValues, zoom, onSelect, onMove }: { item: StickerItem; selected: boolean; liveValues?: DialValues; zoom: number; onSelect: (id: string) => void; onMove: (id: string, x: number, y: number) => void }) {
   const x = useMotionValue(item.x);
   const y = useMotionValue(item.y);
 
@@ -110,8 +112,8 @@ function StickerObject({ item, selected, zoom, onSelect, onMove }: { item: Stick
   return (
     <motion.button
       type="button"
-      className={`sticker-object ${selected ? "is-selected" : ""}`}
-      style={{ x, y, width: item.width, rotate: item.rotation, "--sticker-accent": item.accent } as unknown as React.CSSProperties}
+      className={`sticker-object ${selected ? "is-selected" : ""} ${liveValues ? "has-live-treatment" : ""}`}
+      style={{ x, y, width: item.width, rotate: item.rotation, "--sticker-accent": liveValues?.artDirection.primaryInk ?? item.accent } as unknown as React.CSSProperties}
       drag
       dragMomentum={false}
       dragElastic={0}
@@ -121,10 +123,57 @@ function StickerObject({ item, selected, zoom, onSelect, onMove }: { item: Stick
       onDragEnd={() => onMove(item.id, x.get(), y.get())}
       whileDrag={{ scale: 1.025 / Math.max(zoom, 0.45), rotate: 0, zIndex: 20 }}
     >
-      {/* File-library URLs are temporary and not eligible for Next Image optimization. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={item.imageUrl} alt={`${item.title}, grade ${item.grade} sticker`} draggable={false} />
-      <span className="sticker-caption"><strong>{item.grade}</strong>{item.title}</span>
+      <LiveSticker item={item} values={liveValues} />
+      <span className="sticker-caption"><strong>{liveValues?.brief.grade ?? item.grade}</strong>{liveValues?.brief.headline || item.title}</span>
     </motion.button>
+  );
+}
+
+function LiveSticker({ item, values }: { item: StickerItem; values?: DialValues }) {
+  if (!values) {
+    // File-library URLs are temporary and cannot use Next Image optimization.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={item.imageUrl} alt={`${item.title}, grade ${item.grade} sticker`} draggable={false} />;
+  }
+
+  const orientationClass = values.stamp.orientation.startsWith("square") ? "is-square" : values.stamp.orientation.includes("4:5") ? "is-four-five" : "is-three-four";
+  const fontClass = `type-${values.type.personality.replace(/[^a-z]+/g, "-")}`;
+  const filter = `saturate(${0.35 + values.print.saturation / 72}) contrast(${0.65 + values.print.contrast / 100}) brightness(${1 - values.print.paperAge / 850})`;
+  const style = {
+    "--live-primary": values.artDirection.primaryInk,
+    "--live-accent": values.artDirection.accentInk,
+    "--live-border": `${values.stamp.borderWidth * 0.38}px`,
+    "--live-radius": `${values.stamp.cornerRadius}px`,
+    "--live-perf": `${Math.max(6, values.stamp.perforation)}px`,
+    "--live-image-area": `${values.stamp.imageArea}%`,
+    "--live-headline-scale": `${values.type.headlineScale / 100}`,
+    "--live-grain": values.print.grain / 100,
+    "--live-distress": values.print.distress / 100,
+    "--live-spread": `${values.print.inkSpread / 30}px`,
+    "--live-energy": `${(values.artDirection.characterEnergy - 50) / 18}deg`,
+  } as React.CSSProperties;
+
+  return (
+    <div className={`live-stamp ${orientationClass} ${fontClass} layout-${values.stamp.copyLayout.replace(/[^a-z]+/g, "-")}`} style={style}>
+      <div className="live-stamp-paper">
+        <div className="live-art" style={{ height: `var(--live-image-area)`, borderRadius: `var(--live-radius)`, filter }}>
+          {/* The source may be a temporary ChatGPT Library download URL. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.imageUrl} alt="" draggable={false} />
+          <span className="live-color-wash" />
+        </div>
+        <div className="live-copy">
+          <div className={`live-grade grade-${values.type.gradeStyle.replace(/[^a-z]+/g, "-")}`}>
+            {values.type.showLabel && <small>GRADE</small>}<strong>{values.brief.grade}</strong>
+          </div>
+          <div className="live-words">
+            <strong className="live-headline">{values.brief.headline || item.title}</strong>
+            <span>{values.brief.caption}</span>
+          </div>
+          {values.type.showIcons && <div className="live-icons" aria-hidden="true"><i>●</i><i>⌂</i><i>▣</i><i>♥</i></div>}
+        </div>
+        <span className="live-grain" />
+      </div>
+    </div>
   );
 }

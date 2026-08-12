@@ -11,6 +11,7 @@ export type StickerItem = {
   grade: Grade;
   accent: string;
   createdAt: number;
+  recipe?: DialValues;
 };
 
 export type StudioMode = "preview" | "chatgpt";

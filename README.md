@@ -1,6 +1,6 @@
 # Perforate
 
-Perforate is an infinite-canvas sticker studio built to run inside ChatGPT. It turns a short creative brief and a dense set of art-direction controls into a production-ready prompt for ChatGPT Images, then lets the user bring the finished image back from their ChatGPT Library and arrange it alongside as many editions as they want.
+Perforate is an infinite-canvas sticker studio built to run inside ChatGPT. Its DialKit controls render changes directly onto the selected sticker in real time. ChatGPT image generation remains available as an optional in-place refinement for semantic artwork changes, while layout, copy, grade, palette, typography, crop, perforation, border, texture, and print treatment never require leaving the canvas.
 
 The public web view is a complete preview and manual fallback. The primary experience is the fullscreen ChatGPT plugin at `/mcp`.
 
@@ -13,11 +13,12 @@ ChatGPT subscriptions and OpenAI API billing are separate products. A standalone
 - Infinite pan-and-zoom canvas with draggable, selectable sticker objects
 - Six reference editions covering grades A–F
 - Inline [DialKit](https://github.com/joshpuckett/dialkit) panel with controls for brief, scene, cast, palette, grade, stamp geometry, typography, print texture, and distress
-- Native ChatGPT handoff through `ui/message` / `sendFollowUpMessage`
+- Live per-sticker recipes with instant selected-object rendering
+- Optional native ChatGPT refinement through `ui/message` / `sendFollowUpMessage` without opening another site
 - ChatGPT Library import through the host file APIs
 - Local and widget-state persistence, duplicate/delete/download actions, presets, and responsive layout
 - MCP Streamable HTTP endpoint at `/mcp`
-- Public preview fallback that copies the art brief and opens ChatGPT
+- Public preview with the complete local live-editing experience
 
 ## Local development
 

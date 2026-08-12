@@ -1,7 +1,7 @@
 "use client";
 
 import { DialRoot, useDialKitController } from "dialkit";
-import { ArrowCounterClockwise, Copy, MagicWand, Sparkle } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, MagicWand, Sparkle } from "@phosphor-icons/react";
 import { useEffect, useRef } from "react";
 import { gradePresets } from "@/lib/sticker-data";
 import type { DialValues, Grade } from "@/lib/types";
@@ -58,13 +58,28 @@ const dialConfig = {
   },
 };
 
-export function DialPanel({ onValues, onGenerate, onCopyPrompt }: { onValues: (values: DialValues) => void; onGenerate: (values: DialValues) => void; onCopyPrompt: (values: DialValues) => void }) {
-  const controller = useDialKitController("Sticker recipe", dialConfig, { id: "perforate-sticker", persist: { key: "perforate:dials", storage: "localStorage", presets: true } });
+const paletteInks: Record<string, { primaryInk: string; accentInk: string }> = {
+  "garden green & gold": { primaryInk: "#176a43", accentInk: "#d7b22c" },
+  "cobalt & cream": { primaryInk: "#245cb8", accentInk: "#f3c450" },
+  "burnt orange & ochre": { primaryInk: "#d86a17", accentInk: "#f2c66d" },
+  "coral & oxblood": { primaryInk: "#9d3027", accentInk: "#ef7258" },
+};
+
+export function DialPanel({ onValues, onGenerate, selectedTitle, selectedId, initialValues }: { onValues: (values: DialValues) => void; onGenerate: (values: DialValues) => void; selectedTitle?: string; selectedId: string; initialValues: DialValues }) {
+  const controller = useDialKitController("Sticker recipe", dialConfig, { id: `perforate-sticker-${selectedId}`, persist: { key: `perforate:dials:${selectedId}`, storage: "localStorage", presets: true } });
   const values = controller.values as unknown as DialValues;
   const previousGrade = useRef(values.brief.grade);
+  const previousPalette = useRef(values.artDirection.palette);
   const hydratedInput = useRef(false);
+  const hydratedSelection = useRef(false);
 
   useEffect(() => onValues(values), [onValues, values]);
+
+  useEffect(() => {
+    if (hydratedSelection.current) return;
+    hydratedSelection.current = true;
+    controller.setValues(initialValues);
+  }, [controller, initialValues]);
 
   useEffect(() => {
     if (hydratedInput.current) return;
@@ -90,17 +105,24 @@ export function DialPanel({ onValues, onGenerate, onCopyPrompt }: { onValues: (v
     });
   }, [controller, values.brief.grade]);
 
+  useEffect(() => {
+    if (previousPalette.current === values.artDirection.palette) return;
+    previousPalette.current = values.artDirection.palette;
+    const inks = paletteInks[values.artDirection.palette];
+    if (inks) controller.setValues({ artDirection: inks });
+  }, [controller, values.artDirection.palette]);
+
   return (
     <aside className="settings-panel" aria-label="Sticker settings">
       <div className="settings-intro">
-        <div><span className="eyebrow"><Sparkle size={12} weight="fill" />Art direction</span><h2>Build the recipe</h2></div>
+        <div><span className="eyebrow"><Sparkle size={12} weight="fill" />Live art direction</span><h2>{selectedTitle ? `Editing ${selectedTitle}` : "Select a sticker"}</h2></div>
         <button className="icon-button" onClick={controller.resetValues} aria-label="Reset all settings"><ArrowCounterClockwise size={17} /></button>
       </div>
       <div className="dialkit-shell"><DialRoot mode="inline" theme="dark" productionEnabled /></div>
       <div className="generation-dock">
         <div className="grade-readout"><span>Current grade</span><strong style={{ color: values.artDirection.primaryInk }}>{values.brief.grade as Grade}</strong></div>
-        <button className="generate-button" onClick={() => onGenerate(values)}><MagicWand size={19} weight="fill" /><span>Generate in ChatGPT<small>Uses your signed-in plan</small></span></button>
-        <button className="secondary-button" onClick={() => onCopyPrompt(values)}><Copy size={16} />Copy art brief</button>
+        <div className="live-status"><span className="live-status-dot" />Changes apply to the selected sticker instantly</div>
+        <button className="generate-button" onClick={() => onGenerate(values)}><MagicWand size={19} weight="fill" /><span>Regenerate artwork<small>Runs inside ChatGPT · canvas stays open</small></span></button>
       </div>
     </aside>
   );

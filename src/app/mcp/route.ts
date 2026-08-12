@@ -33,7 +33,7 @@ const handler = createMcpHandler(
               resourceDomains: [publicBaseUrl(), "https://*.oaistatic.com", "https://*.oaiusercontent.com"],
             },
           },
-          "openai/widgetDescription": "Perforate is a fullscreen sticker editor with a DialKit art-direction panel and an infinite canvas. Users compose a brief, ask ChatGPT to generate the image, then import it from their ChatGPT Library.",
+          "openai/widgetDescription": "Perforate is a fullscreen live sticker editor with a DialKit art-direction panel and an infinite canvas. Every visual setting updates the selected sticker immediately; ChatGPT regeneration is an optional in-place refinement.",
           "openai/widgetPrefersBorder": false,
           "openai/widgetCSP": {
             connect_domains: [publicBaseUrl(), "https://chatgpt.com"],
@@ -106,7 +106,7 @@ const handler = createMcpHandler(
         };
         return {
           structuredContent,
-          content: [{ type: "text", text: "The Perforate studio is open. Adjust the recipe and select Generate in ChatGPT; after the image is created, add it from your ChatGPT Library." }],
+          content: [{ type: "text", text: "The Perforate studio is open. Select a sticker and adjust its controls for immediate canvas updates. Use Regenerate artwork only when the underlying scene itself should change." }],
           _meta: { ui: { resourceUri: WIDGET_URI }, "openai/outputTemplate": WIDGET_URI },
         };
       },
@@ -114,7 +114,7 @@ const handler = createMcpHandler(
   },
   {
     serverInfo: { name: "perforate", version: "1.0.0" },
-    instructions: "Perforate helps people art-direct collectible postage-stamp stickers. When sticker creation or editing is requested, call open_sticker_studio. The UI sends a complete visual prompt back into ChatGPT for native image generation under the user's ChatGPT plan.",
+    instructions: "Perforate helps people art-direct collectible postage-stamp stickers. When sticker creation or editing is requested, call open_sticker_studio. The UI applies visual edits locally in real time. It only sends a visual prompt back into ChatGPT when the user explicitly selects Regenerate artwork.",
   },
 );
 
