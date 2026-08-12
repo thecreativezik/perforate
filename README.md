@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Perforate
 
-## Getting Started
+Perforate is an infinite-canvas sticker studio built to run inside ChatGPT. It turns a short creative brief and a dense set of art-direction controls into a production-ready prompt for ChatGPT Images, then lets the user bring the finished image back from their ChatGPT Library and arrange it alongside as many editions as they want.
 
-First, run the development server:
+The public web view is a complete preview and manual fallback. The primary experience is the fullscreen ChatGPT plugin at `/mcp`.
+
+## Why this architecture
+
+ChatGPT subscriptions and OpenAI API billing are separate products. A standalone website cannot spend a user’s ChatGPT Plus or Pro allowance. Perforate therefore runs as a ChatGPT plugin: the component posts the assembled generation brief into the current conversation, and ChatGPT performs native image generation under the signed-in user’s plan. No API key, account cookie, or unofficial browser automation is used.
+
+## Product surface
+
+- Infinite pan-and-zoom canvas with draggable, selectable sticker objects
+- Six reference editions covering grades A–F
+- Inline [DialKit](https://github.com/joshpuckett/dialkit) panel with controls for brief, scene, cast, palette, grade, stamp geometry, typography, print texture, and distress
+- Native ChatGPT handoff through `ui/message` / `sendFollowUpMessage`
+- ChatGPT Library import through the host file APIs
+- Local and widget-state persistence, duplicate/delete/download actions, presets, and responsive layout
+- MCP Streamable HTTP endpoint at `/mcp`
+- Public preview fallback that copies the art brief and opens ChatGPT
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` for the preview.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For ChatGPT Developer Mode, expose the server with an HTTPS tunnel and register `https://your-tunnel.example/mcp` under **Settings → Apps & Connectors → Advanced settings**. Ask ChatGPT to “open Perforate” or “make a financial mood sticker.”
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Validation
 
-## Learn More
+```bash
+npm run check
+```
 
-To learn more about Next.js, take a look at the following resources:
+This runs ESLint, TypeScript, Vitest, the standalone widget bundle, and the optimized Next.js production build.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Set `NEXT_PUBLIC_APP_URL` to the stable HTTPS deployment URL. Vercel builds the Next.js preview, MCP endpoint, and the self-contained ChatGPT widget bundle from one repository.
 
-## Deploy on Vercel
+## Privacy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Perforate has no separate user database and does not collect OpenAI credentials. The published privacy notice is available at `/privacy.html`.
