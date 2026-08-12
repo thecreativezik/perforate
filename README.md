@@ -42,6 +42,8 @@ This runs ESLint, TypeScript, Vitest, the standalone widget bundle, and the opti
 
 Set `NEXT_PUBLIC_APP_URL` to the stable HTTPS deployment URL. Vercel builds the Next.js preview, MCP endpoint, and the self-contained ChatGPT widget bundle from one repository.
 
+Pushes to `main` are automatically checked out, built, and deployed to the linked Vercel production project by `.github/workflows/deploy.yml`.
+
 ## Privacy
 
 Perforate has no separate user database and does not collect OpenAI credentials. The published privacy notice is available at `/privacy.html`.
